@@ -102,27 +102,47 @@
 import "vue3-toastify/dist/index.css";
 import { ref, onMounted } from "vue";
 import axios from "axios";
+import { useRoute, navigateTo, useRuntimeConfig } from '#app'; 
 
 import { useInventoryStore } from "~/stores/user";
 
 const InventoryStore = useInventoryStore();
 
-const config = useRuntimeConfig();
+const config = useRuntimeConfig(); // Nuxt.js runtime config
 
 const user = ref({});
 const tradeUrl = ref("");
 const inventoryFetched = ref(false);
-const isLoading = ref(true); // yangi loading flag
-const isWorking = ref(false);
+const isLoading = ref(true); // Ma'lumotlar yuklanayotganini ko'rsatuvchi flag
+const isWorking = ref(false); // Ba'zi ish holatlari uchun flag (hozircha ishlatilmagan)
 
 onMounted(() => {
   const route = useRoute();
-  const token = route.query.token || JSON.parse(localStorage.getItem("token"));
-  localStorage.setItem("token", JSON.stringify(token));
-  getMe(token);
+  let token = route.query.token;
+
+  if (!token) {
+    const storedToken = localStorage.getItem("token");
+    if (storedToken) {
+      try {
+        token = JSON.parse(storedToken);
+      } catch (e) {
+        console.error("localStorage'dan tokenni parse qilishda xato:", e);
+        localStorage.removeItem("token");
+        token = null;
+      }
+    }
+  }
+
+  if (token) {
+    localStorage.setItem("token", JSON.stringify(token));
+    getMe(token);
+  } else {
+    console.warn("Token topilmadi. Foydalanuvchi tizimga kirmagan.");
+    isLoading.value = false; // Loadingni tugatamiz
+  }
 
   if (isWorking.value) {
-    navigateTo("/working")
+    navigateTo("/working");
   }
 });
 
@@ -138,24 +158,36 @@ async function getMe(token) {
     }
     user.value = res.data.data;
   } catch (err) {
+    console.error("Foydalanuvchi ma'lumotlarini olishda xato:", err);
     localStorage.removeItem("token");
   } finally {
-    isLoading.value = false;
+    isLoading.value = false; // Yuklanishni yakunlash
   }
 }
 
 async function saveUrl() {
-  const res = await axios.put(
-    `${config.public.url}/users/set-trade-url`,
-    { tradeUrl: tradeUrl.value },
-    {
-      headers: {
-        Authorization: `Bearer ${JSON.parse(localStorage.getItem("token"))}`,
-      },
+  try {
+    const tokenFromStorage = JSON.parse(localStorage.getItem("token"));
+    if (!tokenFromStorage) {
+      console.error("Saqlash uchun token topilmadi.");
+      return;
     }
-  );
-  inventoryFetched.value = true;
-  user.value = res.data.data;
+
+    const res = await axios.put(
+      `${config.public.url}/users/set-trade-url`,
+      { tradeUrl: tradeUrl.value },
+      {
+        headers: {
+          Authorization: `Bearer ${tokenFromStorage}`,
+        },
+      }
+    );
+    inventoryFetched.value = true; // Inventarizatsiya olinganini belgilash
+    user.value = res.data.data; // Yangilangan foydalanuvchi ma'lumotlarini saqlash
+    console.log("Trade URL muvaffaqiyatli saqlandi:", res.data.data);
+  } catch (err) {
+    console.error("Trade URLni saqlashda xato:", err);
+  }
 }
 </script>
 
