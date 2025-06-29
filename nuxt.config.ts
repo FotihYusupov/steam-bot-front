@@ -8,7 +8,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      url: 'https://steam-bot-back.onrender.com/api', // https://botapi.hypernova.uz/api
+      url: 'https://bot.lootpanda.uz/api',
       version: '1.0.0'
     }
   },

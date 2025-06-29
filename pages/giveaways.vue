@@ -1,6 +1,11 @@
 <template>
-  <div class="min-h-screen bg-black text-white p-2 pb-24 flex justify-center">
+  <div class="bg-black text-white p-2 pb-24 flex justify-center">
     <div class="w-full max-w-2xl space-y-6">
+      <div v-if="giveaways.length === 0" class="text-center text-gray-400 text-lg mt-10">
+        <p>Afsusski hozirda hech qanday giveaway mavjud emas.</p>
+        <p class="text-sm mt-2">Tez orada yangilanishlarni kuting!</p>
+      </div>
+
       <div
         v-for="giveaway in giveaways"
         :key="giveaway._id"

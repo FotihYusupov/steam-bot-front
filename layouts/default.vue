@@ -12,9 +12,9 @@
 
     <!-- Header -->
     <nav
-      class="fixed top-0 left-0 w-full px-6 py-3 bg-black border-b border-[#FFB823] z-40 flex justify-between items-center"
+      class="fixed top-0 left-0 w-full px-4 py-3 bg-black border-b border-[#FFB823] z-40 flex justify-between items-center"
     >
-      <h1 class="text-[#FFB823] text-xl font-semibold">
+      <h1 class="text-[#FFB823] text-2xl font-semibold">
         👋 Salom, {{ user.firstName }}!
       </h1>
       <img
