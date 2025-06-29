@@ -108,13 +108,12 @@ import { useInventoryStore } from "~/stores/user";
 
 const InventoryStore = useInventoryStore();
 
-const config = useRuntimeConfig(); // Nuxt.js runtime config
+const config = useRuntimeConfig();
 
 const user = ref({});
 const tradeUrl = ref("");
-const inventoryFetched = ref(false);
-const isLoading = ref(true); // Ma'lumotlar yuklanayotganini ko'rsatuvchi flag
-const isWorking = ref(false); // Ba'zi ish holatlari uchun flag (hozircha ishlatilmagan)
+const isLoading = ref(true);
+const isWorking = ref(false);
 
 onMounted(() => {
   const route = useRoute();
@@ -138,7 +137,7 @@ onMounted(() => {
     getMe(token);
   } else {
     console.warn("Token topilmadi. Foydalanuvchi tizimga kirmagan.");
-    isLoading.value = false; // Loadingni tugatamiz
+    isLoading.value = false;
   }
 
   if (isWorking.value) {
@@ -161,7 +160,7 @@ async function getMe(token) {
     console.error("Foydalanuvchi ma'lumotlarini olishda xato:", err);
     localStorage.removeItem("token");
   } finally {
-    isLoading.value = false; // Yuklanishni yakunlash
+    isLoading.value = false;
   }
 }
 
@@ -182,8 +181,8 @@ async function saveUrl() {
         },
       }
     );
-    inventoryFetched.value = true; // Inventarizatsiya olinganini belgilash
-    user.value = res.data.data; // Yangilangan foydalanuvchi ma'lumotlarini saqlash
+    InventoryStore.updateInventory(true);
+    user.value = res.data.data;
     console.log("Trade URL muvaffaqiyatli saqlandi:", res.data.data);
   } catch (err) {
     console.error("Trade URLni saqlashda xato:", err);
