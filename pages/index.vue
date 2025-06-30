@@ -234,7 +234,7 @@
             </button>
             <a
               v-if="modalType === 'success'"
-              href="https://t.me/rush_skins"
+              href="https://t.me/skinChanger_official"
               target="_blank"
               class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 font-bold block"
             >
