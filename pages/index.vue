@@ -225,12 +225,22 @@
           </h3>
           <p class="text-sm text-gray-300">{{ modalMessage }}</p>
 
-          <button
-            @click="showModal = false"
-            class="mt-4 px-4 py-2 rounded bg-[#FFB823] text-black hover:bg-yellow-400 font-bold"
-          >
-            Yopish
-          </button>
+          <div class="flex flex-col gap-3 mt-4">
+            <button
+              @click="showModal = false"
+              class="px-4 py-2 rounded bg-[#FFB823] text-black hover:bg-yellow-400 font-bold"
+            >
+              Yopish
+            </button>
+            <a
+              v-if="modalType === 'success'"
+              href="https://t.me/rush_skins"
+              target="_blank"
+              class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 font-bold block"
+            >
+              Kanalga qo'shilish
+            </a>
+          </div>
         </div>
       </div>
     </Transition>
@@ -280,14 +290,6 @@ onUnmounted(() => {
 watch(inventoryFetched, async (newVal) => {
   if (newVal) {
     await fetchInventory();
-  }
-});
-
-watch(showModal, (val) => {
-  if (val) {
-    setTimeout(() => {
-      showModal.value = false;
-    }, 5000);
   }
 });
 
@@ -380,7 +382,9 @@ function startRefreshCountdown(seconds) {
 function sellItem(item) {
   selectedItem.value = item;
   isFree.value = false;
-  customPrice.value = item.suggested_price ? item.suggested_price.toString() : "";
+  customPrice.value = item.suggested_price
+    ? item.suggested_price.toString()
+    : "";
   comment.value = "";
 }
 
@@ -394,30 +398,46 @@ function checkMessageForSpam(message) {
   if (message.length > 500) {
     return {
       status: 400,
-      message: "Xabar uzunligi ruxsat etilgan chegaradan tashqarida."
+      message: "Xabar uzunligi ruxsat etilgan chegaradan tashqarida.",
     };
   }
 
   const spamKeywords = [
-    "aksiya", "chegirma", "pul ishlang",
-    "qo'shiling", "kanal", "guruh", "investitsiya", "tez pul",
-    "daromad", "kripto", "sayt", "link", "bot", "admin", "aloqa",
-    "telegram", "instagram", "tiktok", "facebook"
+    "aksiya",
+    "chegirma",
+    "pul ishlang",
+    "qo'shiling",
+    "kanal",
+    "guruh",
+    "investitsiya",
+    "tez pul",
+    "daromad",
+    "kripto",
+    "sayt",
+    "link",
+    "bot",
+    "admin",
+    "aloqa",
+    "telegram",
+    "instagram",
+    "tiktok",
+    "facebook",
   ];
   for (const keyword of spamKeywords) {
     if (lowerCaseMessage.includes(keyword)) {
       return {
         status: 400,
-        message: `Xabarda potentsial reklama kalit so'zi (${keyword}) topildi.`
+        message: `Xabarda potentsial reklama kalit so'zi (${keyword}) topildi.`,
       };
     }
   }
 
-  const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(\.[a-z]{2,4}\/)|(t\.me\/)|(instagram\.com\/)|(facebook\.com\/)/g;
+  const urlRegex =
+    /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(\.[a-z]{2,4}\/)|(t\.me\/)|(instagram\.com\/)|(facebook\.com\/)/g;
   if (urlRegex.test(lowerCaseMessage)) {
     return {
       status: 400,
-      message: "Xabarda link yoki sayt manzili topildi."
+      message: "Xabarda link yoki sayt manzili topildi.",
     };
   }
 
@@ -425,30 +445,31 @@ function checkMessageForSpam(message) {
   if (repetitionRegex.test(message)) {
     return {
       status: 400,
-      message: "Xabarda takrorlanuvchi belgilar mavjud."
+      message: "Xabarda takrorlanuvchi belgilar mavjud.",
     };
   }
 
-  const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
+  const emojiRegex =
+    /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
   const emojiMatches = message.match(emojiRegex);
   if (emojiMatches && emojiMatches.length > 5) {
     return {
       status: 400,
-      message: "Xabarda juda ko'p emojilar mavjud."
+      message: "Xabarda juda ko'p emojilar mavjud.",
     };
   }
 
   const uppercaseCount = (message.match(/[A-Z]/g) || []).length;
-  if (message.length > 0 && (uppercaseCount / message.length) > 0.5) {
+  if (message.length > 0 && uppercaseCount / message.length > 0.5) {
     return {
       status: 400,
-      message: "Xabarning katta qismi katta harflarda yozilgan."
+      message: "Xabarning katta qismi katta harflarda yozilgan.",
     };
   }
 
   return {
     status: 200,
-    message: "Xabar reklama belgilarini o'z ichiga olmaydi."
+    message: "Xabar reklama belgilarini o'z ichiga olmaydi.",
   };
 }
 
@@ -458,7 +479,7 @@ async function submitSell() {
     commentRes.value = checkMessageRes;
     return;
   }
-  
+
   if (isItemOnCooldown(selectedItem.value)) {
     const diff = Math.ceil(
       (selectedItem.value.nextAnnounce - Date.now()) / (1000 * 60)
@@ -469,7 +490,10 @@ async function submitSell() {
     return;
   }
 
-  if (!isFree.value && (isNaN(Number(customPrice.value)) || Number(customPrice.value) <= 0)) {
+  if (
+    !isFree.value &&
+    (isNaN(Number(customPrice.value)) || Number(customPrice.value) <= 0)
+  ) {
     modalType.value = "error";
     modalMessage.value = "Narxni to‘g‘ri kiriting.";
     showModal.value = true;
@@ -502,7 +526,7 @@ async function submitSell() {
     }
 
     modalType.value = "success";
-    modalMessage.value = "E'lon muvaffaqiyatli yuborildi!";
+    modalMessage.value = "E'lon muvaffaqiyatli yuborildi! E'lonni ko'rish uchun kanalga qo'shiling.";
     showModal.value = true;
     closeModal();
   } catch (err) {
