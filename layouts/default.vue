@@ -75,7 +75,7 @@
         </p>
         <p class="text-center text-sm text-gray-300 mb-3">
           <a
-            href="https://steamcommunity.com/id/fatihyusupov/tradeoffers/privacy#trade_offer_access_url"
+            href="https://steamcommunity.com/id/me/tradeoffers/privacy#trade_offer_access_url"
             target="_blank"
             class="text-[#FFB823] underline"
           >
@@ -152,6 +152,12 @@ async function getMe(token) {
         Authorization: `Bearer ${token}`,
       },
     });
+
+    if (res.data.data.isBlocked) {
+      navigateTo("/blocked");
+      return;
+    }
+
     if (res.data.data.steamId64) {
       InventoryStore.updateInventory(true);
     }
