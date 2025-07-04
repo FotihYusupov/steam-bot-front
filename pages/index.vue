@@ -70,7 +70,10 @@
             </div>
             <div v-if="isItemOnCooldown(item)" class="mt-2">
               <div class="text-center text-sm text-gray-400 mb-2">
-                {{ formatCooldown(item.nextAnnounce) }}
+                {{
+                  cooldownDisplays[item._id] ||
+                  formatCooldown(item.nextAnnounce)
+                }}
               </div>
               <button
                 @click="openManagementModal(item)"
@@ -357,6 +360,8 @@ const isRefreshButtonDisabled = ref(false);
 const remainingSeconds = ref(0);
 let refreshCountdownInterval = null;
 
+// YECHIM: Har bir element uchun taymerni saqlash uchun reaktiv obyekt
+const cooldownDisplays = ref({});
 const itemCooldownTimeouts = new Map();
 
 const showManagementModal = ref(false);
@@ -391,7 +396,7 @@ async function fetchInventory() {
     });
     items.value = res.data.data || [];
     items.value.forEach((item) => {
-      if (item.nextAnnounce) {
+      if (isItemOnCooldown(item)) {
         startItemCountdown(item);
       }
     });
@@ -423,7 +428,7 @@ async function refreshInventory() {
 
     items.value = res.data.data || [];
     items.value.forEach((item) => {
-      if (item.nextAnnounce) {
+      if (isItemOnCooldown(item)) {
         startItemCountdown(item);
       }
     });
@@ -553,6 +558,14 @@ async function deleteAnnouncement() {
       `${config.public.url}/user-inventory/${itemToManage.value._id}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+    
+    // YECHIM: Elementni inventardan lokal ravishda olib tashlash
+    const index = items.value.findIndex((i) => i._id === itemToManage.value._id);
+    if (index !== -1) {
+        // nextAnnounce ni o'chirish orqali holatni yangilaymiz
+        delete items.value[index].nextAnnounce;
+        delete items.value[index].messageId;
+    }
 
     closeManagementModal();
     modalType.value = "success";
@@ -566,6 +579,7 @@ async function deleteAnnouncement() {
   }
 }
 
+// ... checkMessageForSpam funksiyangiz o'zgarishsiz qoladi ...
 function checkMessageForSpam(message) {
   const lowerCaseMessage = message.toLowerCase();
 
@@ -577,25 +591,10 @@ function checkMessageForSpam(message) {
   }
 
   const spamKeywords = [
-    "aksiya",
-    "chegirma",
-    "pul ishlang",
-    "qo'shiling",
-    "kanal",
-    "guruh",
-    "investitsiya",
-    "tez pul",
-    "daromad",
-    "kripto",
-    "sayt",
-    "link",
-    "bot",
-    "admin",
-    "aloqa",
-    "telegram",
-    "instagram",
-    "tiktok",
-    "facebook",
+    "aksiya", "chegirma", "pul ishlang", "qo'shiling", "kanal",
+    "guruh", "investitsiya", "tez pul", "daromad", "kripto", "sayt",
+    "link", "bot", "admin", "aloqa", "telegram", "instagram",
+    "tiktok", "facebook",
   ];
   for (const keyword of spamKeywords) {
     if (lowerCaseMessage.includes(keyword)) {
@@ -606,8 +605,7 @@ function checkMessageForSpam(message) {
     }
   }
 
-  const urlRegex =
-    /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(\.[a-z]{2,4}\/)|(t\.me\/)|(instagram\.com\/)|(facebook\.com\/)/g;
+  const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|(\.[a-z]{2,4}\/)|(t\.me\/)|(instagram\.com\/)|(facebook\.com\/)/g;
   if (urlRegex.test(lowerCaseMessage)) {
     return {
       status: 400,
@@ -623,8 +621,7 @@ function checkMessageForSpam(message) {
     };
   }
 
-  const emojiRegex =
-    /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
+  const emojiRegex = /(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])/g;
   const emojiMatches = message.match(emojiRegex);
   if (emojiMatches && emojiMatches.length > 5) {
     return {
@@ -721,10 +718,11 @@ const filteredItems = computed(() => {
 });
 
 function isItemOnCooldown(item) {
-  return item.nextAnnounce && Date.now() < item.nextAnnounce;
+  return item && item.nextAnnounce && Date.now() < item.nextAnnounce;
 }
 
 function formatCooldown(timestamp) {
+  if (!timestamp) return "Sotish";
   const now = Date.now();
   let timeLeft = timestamp - now;
 
@@ -742,34 +740,37 @@ function formatCooldown(timestamp) {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
 }
 
+// YECHIM: Ortga sanash mantig'ini yangilash
 function startItemCountdown(item) {
   if (itemCooldownTimeouts.has(item._id)) {
     clearTimeout(itemCooldownTimeouts.get(item._id));
   }
 
-  const updateCooldown = () => {
-    const index = items.value.findIndex((i) => i._id === item._id);
-    if (index === -1) {
+  const updateDisplay = () => {
+    // Agar element endi mavjud bo'lmasa, to'xtatish
+    const currentItem = items.value.find((i) => i._id === item._id);
+    if (!currentItem || !isItemOnCooldown(currentItem)) {
+      if (currentItem) {
+        delete currentItem.nextAnnounce;
+      }
+      delete cooldownDisplays.value[item._id];
+      clearTimeout(itemCooldownTimeouts.get(item._id));
       itemCooldownTimeouts.delete(item._id);
       return;
     }
 
-    const currentItem = items.value[index];
-    if (Date.now() >= currentItem.nextAnnounce) {
-      delete currentItem.nextAnnounce;
-      itemCooldownTimeouts.delete(item._id);
-    } else {
-      const timeLeft = currentItem.nextAnnounce - Date.now();
-      const nextUpdateDelay = timeLeft % 1000 || 1000;
-      const timeoutId = setTimeout(updateCooldown, nextUpdateDelay);
-      itemCooldownTimeouts.set(currentItem._id, timeoutId);
-    }
+    // Reaktiv holatni yangilash
+    cooldownDisplays.value[item._id] = formatCooldown(currentItem.nextAnnounce);
+
+    // Keyingi soniya uchun taymerni o'rnatish
+    const timeoutId = setTimeout(updateDisplay, 1000);
+    itemCooldownTimeouts.set(item._id, timeoutId);
   };
 
-  updateCooldown();
+  updateDisplay();
 }
-</script>
 
+</script>
 <style scoped>
 .fade-scale-enter-active,
 .fade-scale-leave-active {
