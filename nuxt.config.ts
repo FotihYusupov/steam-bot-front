@@ -8,7 +8,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      url: 'http://localhost:3001/api', //https://bot.lootpanda.uz/api
+      url: 'https://bot.lootpanda.uz/api', //https://bot.lootpanda.uz/api
       version: '1.0.0'
     }
   },
